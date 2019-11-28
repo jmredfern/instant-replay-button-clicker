@@ -4,7 +4,8 @@ import WebSocket from 'ws';
 
 const client = {};
 
-const connect = ({ websocket }) => {
+const connect = ({ url }) => {
+  const websocket = new WebSocket(url);
   websocket.on("open", function open() {
     console.log("Client connected");
   });
@@ -15,13 +16,12 @@ const connect = ({ websocket }) => {
 
   websocket.on("close", function open() {
     console.log("Client disconnected");
-    connect({ websocket });
+    connect({ url });
   });
 }
 
 client.start = ({ url }) => {
-  const websocket = new WebSocket(url);
-  connect({ websocket });
+  connect({ url });
 };
 
 export default client;
