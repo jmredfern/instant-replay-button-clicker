@@ -4,17 +4,24 @@ import WebSocket from 'ws';
 
 const client = {};
 
-client.start = ({ url }) => {
-  const ws = new WebSocket(url);
-
-  ws.on("open", function open() {
+const connect = ({ websocket }) => {
+  websocket.on("open", function open() {
     console.log("Client connected");
   });
 
-  ws.on("message", (data) => {
+  websocket.on("message", (data) => {
     console.log(`Client received: ${data}`);
   });
 
+  websocket.on("close", function open() {
+    console.log("Client disconnected");
+    connect({ websocket });
+  });
+}
+
+client.start = ({ url }) => {
+  const websocket = new WebSocket(url);
+  connect({ websocket });
 };
 
 export default client;
