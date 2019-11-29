@@ -1,60 +1,59 @@
 "use strict";
 
-import path from "path";
+import { createServer } from "http";
 import express from "express";
-import {
-  createServer
-} from "http";
-
+import logger from "./logger.js";
+import path from "path";
 import WebSocket from "ws";
+
+const log = logger.getLogger(import.meta.url);
 
 const server = {};
 
 const app = express();
 
 const expressServer = createServer(app);
-const wss = new WebSocket.Server({
-  server: expressServer
-});
+const wss = new WebSocket.Server({ server: expressServer });
 
 let websocket;
 let clickPending = false;
-let connected = false;
+let isConnected = false;
 
 wss.on("connection", (ws) => {
-  console.log("Client connected");
-  connected = true;
+  log.info("Client connected");
+  isConnected = true;
   websocket = ws;
   if (clickPending) {
     doClick({ websocket });
   }
   websocket.on("message", (data) => {
-    console.log(`Client received: ${data}`);
+    log.debug(`Server received: ${data}`);
   });
 
   websocket.on("close", () => {
-    console.log("Client disconnected");
-    connected = false;
+    log.info("Client disconnected");
+    isConnected = false;
   });
 });
 
 server.start = ({ port }) => {
+  log.info('Starting server');
   expressServer.listen(port, () => {
-    console.log(`Server listening on port ${port}`);
+    log.info(`Server listening on port ${port}`);
   });
 };
 
 const doClick = ({ websocket }) => {
-  if (!websocket || !connected) {
+  if (!websocket || !isConnected) {
     return;
   }
-  console.log("Sending click");
+  log.info("Sending click");
   clickPending = false;
   websocket.send("click");
 }
 
 app.get("/click", (req, res) => {
-  console.log("Click received");
+  log.info("Click received");
   clickPending = true;
   doClick({ websocket });
   res.status(200).send();

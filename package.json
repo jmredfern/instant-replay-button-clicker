@@ -6,7 +6,9 @@
   },
   "dependencies": {
     "command-line-args": "^5.1.1",
+    "date-fns": "^2.8.1",
     "express": "^4.17.1",
+    "log4js": "^6.1.0",
     "ws": "^7.2.0"
   },
   "description": "",
