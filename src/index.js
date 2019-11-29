@@ -5,10 +5,11 @@ import commandLineArgs from "command-line-args";
 import server from "./server.js";
 import logger from "./logger.js";
 
-const log = logger.getLogger(import.meta.url);
+const log = logger.getLoggerByUrl({ url: import.meta.url });
 
 const optionDefinitions = [
   { name: "client", alias: "c", type: Boolean },
+  { name: "keyToPress", alias: "k", type: String },
   { name: "port", alias: "p", type: Number },
   { name: "server", alias: "s", type: Boolean },
   { name: "sleepTime", alias: "t", type: String },
@@ -16,14 +17,14 @@ const optionDefinitions = [
 ];
 
 const options = commandLineArgs(optionDefinitions);
-const { port, sleepTime, url } = options;
+const { keyToPress, port, sleepTime, url } = options;
 
 if (options.client) {
   if (!url) {
     log.info("No url specified");
     process.exit(0);
   }
-  client.start({ sleepTime, url });
+  client.start({ keyToPress, sleepTime, url });
 } else if (options.server) {
   if (!port) {
     log.info("No port specified");

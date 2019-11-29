@@ -3,11 +3,13 @@
 import WebSocket from "ws";
 import dateFns from "date-fns";
 import logger from "./logger.js";
+import { exec } from "child_process";
 
-const log = logger.getLogger(import.meta.url);
+const log = logger.getLoggerByUrl({ url: import.meta.url });
 const { parse, differenceInMilliseconds, addMinutes, addDays, isWithinInterval, isBefore, subDays } = dateFns;
 
 let isConnected;
+let keyToPress;
 
 const SLEEP_LENGTH_MINUTES = 6 * 60;
 const KEEP_ALIVE_LENGTH_SECONDS = 50;
@@ -63,6 +65,10 @@ const processKeepAlive = ({ sleepTime, websocket }) => {
   }, KEEP_ALIVE_LENGTH_SECONDS * 1000);
 }
 
+const pressKey = ({ keyToPress }) => {
+  exec(`osascript -e 'tell application "System Events"' -e 'keystroke "${keyToPress}"' -e 'end tell'`);
+}
+
 const connect = ({ sleepTime, url }) => {
   log.info(`Connecting to ${url}`);
   const websocket = new WebSocket(url);
@@ -76,6 +82,10 @@ const connect = ({ sleepTime, url }) => {
 
   websocket.on("message", (data) => {
     log.info(`Client received: ${data}`);
+    if (keyToPress !== undefined && data === "click") {
+      log.info(`Pressing key: ${keyToPress}`);
+      pressKey({ keyToPress });
+    }
   });
 
   websocket.on("close", () => {
@@ -108,9 +118,10 @@ const scheduleConnect = ({ sleepTime, url }) => {
   }
 }
 
-client.start = ({ sleepTime, url }) => {
-  log.info('Starting client');
+client.start = ({ keyToPress: _keyToPress, sleepTime, url }) => {
+  log.info(`Starting client`);
   isConnected = false;
+  keyToPress = _keyToPress;
   scheduleConnect({ sleepTime, url })
 };
 

@@ -5,7 +5,7 @@
 
 ```js
 node src/index.js --server --port 8000
-node src/index.js --client --url ws://localhost:8000/ --sleepTime "00:00"
+node src/index.js --client --url ws://localhost:8000/ --sleepTime "00:00" --keyToPress "a"
 curl http://localhost:8000/click
 ```
 ## License

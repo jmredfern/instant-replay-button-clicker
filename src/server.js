@@ -6,7 +6,7 @@ import logger from "./logger.js";
 import path from "path";
 import WebSocket from "ws";
 
-const log = logger.getLogger(import.meta.url);
+const log = logger.getLoggerByUrl({ url: import.meta.url });
 
 const server = {};
 
@@ -59,7 +59,7 @@ app.get("/click", (req, res) => {
   res.status(200).send();
 })
 
-const __dirname = path.resolve(path.dirname(''));
-app.use('/', express.static(path.join(__dirname, 'public')))
+const rootPath = path.resolve(path.dirname(''));
+app.use('/', express.static(path.join(rootPath, 'public')))
 
 export default server;

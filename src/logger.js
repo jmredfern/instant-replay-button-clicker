@@ -1,3 +1,5 @@
+"use strict";
+
 import log4js from "log4js"
 
 log4js.configure({
@@ -7,9 +9,17 @@ log4js.configure({
 
 const logger = {};
 
-logger.getLogger = (importMetaUrl) => {
-  const pathname = new URL(importMetaUrl).pathname;
-  const filename = pathname.substring(pathname.lastIndexOf('/') + 1);
+const getFilename = ({ url }) => {
+  const pathname = new URL(url).pathname;
+  return pathname.substring(pathname.lastIndexOf('/') + 1);
+};
+
+logger.getLoggerByUrl = ({ url }) => {
+  const filename = getFilename({ url });
+  return log4js.getLogger(filename);
+};
+
+logger.getLoggerByFilename = ({ filename }) => {
   return log4js.getLogger(filename);
 };
 
