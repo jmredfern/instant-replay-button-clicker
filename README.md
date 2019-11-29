@@ -10,7 +10,7 @@ curl http://localhost:8000/click
 ```
 ## License
 
- © [Jim Redfern]()
+MIT © [Jim Redfern]()
 
 
 [npm-image]: https://badge.fury.io/js/button-clicker.svg
