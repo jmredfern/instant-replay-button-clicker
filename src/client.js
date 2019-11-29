@@ -9,8 +9,8 @@ const { parse, differenceInMilliseconds, addMinutes, addDays, isWithinInterval, 
 
 let isConnected;
 
-const SLEEP_LENGTH_MINUTES = 1;
-const KEEP_ALIVE_LENGTH_SECONDS = 20;
+const SLEEP_LENGTH_MINUTES = 6 * 60;
+const KEEP_ALIVE_LENGTH_SECONDS = 50;
 const ERROR_RETRY_TIMEOUT = 5000;
 
 const client = {};
