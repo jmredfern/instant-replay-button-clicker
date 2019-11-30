@@ -5,6 +5,7 @@ import express from "express";
 import logger from "./logger.js";
 import path from "path";
 import WebSocket from "ws";
+import exphbs from "express-handlebars";
 
 const log = logger.getLoggerByUrl({ url: import.meta.url });
 
@@ -18,6 +19,7 @@ const wss = new WebSocket.Server({ server: expressServer });
 let websocket;
 let clickPending = false;
 let isConnected = false;
+let url;
 
 wss.on("connection", (ws) => {
   log.info("Client connected");
@@ -36,8 +38,9 @@ wss.on("connection", (ws) => {
   });
 });
 
-server.start = ({ port }) => {
+server.start = ({ port, url: _url }) => {
   log.info('Starting server');
+  url = _url;
   expressServer.listen(port, () => {
     log.info(`Server listening on port ${port}`);
   });
@@ -52,7 +55,7 @@ const doClick = ({ websocket }) => {
   websocket.send("click");
 }
 
-app.get("/click", (req, res) => {
+app.post("/click", (req, res) => {
   log.info("Click received");
   clickPending = true;
   doClick({ websocket });
@@ -60,6 +63,21 @@ app.get("/click", (req, res) => {
 })
 
 const rootPath = path.resolve(path.dirname(''));
-app.use('/', express.static(path.join(rootPath, 'public')))
+app.use('/assets/', express.static(path.join(rootPath, 'assets')))
+
+const hbs = exphbs.create({
+  helpers: {
+      serverUrl: () => "foo.",
+  }
+});
+app.engine('handlebars', hbs.engine);
+app.set('view engine', 'handlebars');
+app.get('/', (req, res, next) => {
+  res.render('index', {
+      helpers: {
+          clickUrl: () => `${url}/click`,
+      }
+  });
+});
 
 export default server;

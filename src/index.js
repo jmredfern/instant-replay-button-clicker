@@ -26,11 +26,7 @@ if (options.client) {
   }
   client.start({ keyToPress, sleepTime, url });
 } else if (options.server) {
-  if (!port) {
-    log.info("No port specified");
-    process.exit(0);
-  }
-  server.start({ port: process.env.PORT || port });
+  server.start({ port: process.env.PORT || port, url });
 }
 
 export default {};
