@@ -1,12 +1,19 @@
-# button-clicker [![NPM version][npm-image]][npm-url] [![Build Status][travis-image]][travis-url] [![Dependency Status][daviddm-image]][daviddm-url] [![Coverage percentage][coveralls-image]][coveralls-url]
-> 
+# instant-replay-button-clicker
 
 ## Usage
 
 ```js
-node src/index.js --server --port 8000
-node src/index.js --client --url ws://localhost:8000/ --sleepTime "00:00" --keyToPress "a"
-curl http://localhost:8000/click
+# start server
+node src/index.js --server --port 8000 --url http://localhost:8000
+
+# start client
+node src/index.js --client --url ws://localhost:8000/ --sleepTime 00:00 --keyToPress a
+
+# send click from commandline
+curl -X POST http://localhost:8000/click
+
+# send click from browser
+http://localhost:8000/
 ```
 ## License
 
