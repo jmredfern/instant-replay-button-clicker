@@ -68,7 +68,7 @@
     "url": "https://github.com/jmredfern/instant-replay-button-clicker"
   },
   "scripts": {
-    "start": "node src/index.js --server --url https://lit-refuge-18863.herokuapp.com",
+    "start": "node src/index.js --server --serverUrl https://lit-refuge-18863.herokuapp.com",
     "test": "jest"
   },
   "type": "module",

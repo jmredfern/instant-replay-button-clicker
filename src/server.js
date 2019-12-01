@@ -6,27 +6,30 @@ import logger from "./logger.js";
 import path from "path";
 import WebSocket from "ws";
 import exphbs from "express-handlebars";
+import dateFns from "date-fns";
 
+const { differenceInMilliseconds } = dateFns;
 const log = logger.getLoggerByUrl({ url: import.meta.url });
-
-const server = {};
 
 const app = express();
 
 const expressServer = createServer(app);
 const wss = new WebSocket.Server({ server: expressServer });
 
+const MINIMUM_CLICK_PERIOD_MS = 30000;
+
 let websocket;
 let clickPending = false;
 let isConnected = false;
-let url;
+let serverUrl;
+let lastClickDate = null;
 
 wss.on("connection", (ws) => {
   log.info("Client connected");
   isConnected = true;
   websocket = ws;
   if (clickPending) {
-    doClick({ websocket });
+    processClick({ websocket });
   }
   websocket.on("message", (data) => {
     log.debug(`Server received: ${data}`);
@@ -38,15 +41,18 @@ wss.on("connection", (ws) => {
   });
 });
 
-server.start = ({ port, url: _url }) => {
+const server = {};
+
+server.start = ({ port, serverUrl: _serverUrl }) => {
   log.info('Starting server');
-  url = _url;
+  serverUrl = _serverUrl;
   expressServer.listen(port, () => {
     log.info(`Server listening on port ${port}`);
   });
 };
 
-const doClick = ({ websocket }) => {
+const processClick = ({ websocket }) => {
+  clickPending = true;
   if (!websocket || !isConnected) {
     return;
   }
@@ -55,27 +61,36 @@ const doClick = ({ websocket }) => {
   websocket.send("click");
 }
 
+const isWithinLastClickPeriod = () => {
+  const clickDate = new Date();
+  const result =
+    lastClickDate !== null &&
+    differenceInMilliseconds(clickDate, lastClickDate) < MINIMUM_CLICK_PERIOD_MS;
+  if (result === false) {
+    lastClickDate = clickDate;
+  }
+  return result;
+};
+
 app.post("/click", (req, res) => {
   log.info("Click received");
-  clickPending = true;
-  doClick({ websocket });
+  if (isWithinLastClickPeriod()) {
+    log.info('Ignoring click received within last click period');
+  } else {
+    processClick({ websocket });
+  }
   res.status(200).send();
 })
 
 const rootPath = path.resolve(path.dirname(''));
 app.use('/assets/', express.static(path.join(rootPath, 'assets')))
 
-const hbs = exphbs.create({
-  helpers: {
-      serverUrl: () => "foo.",
-  }
-});
-app.engine('handlebars', hbs.engine);
+app.engine('handlebars', exphbs());
 app.set('view engine', 'handlebars');
 app.get('/', (req, res, next) => {
   res.render('index', {
       helpers: {
-          clickUrl: () => `${url}/click`,
+          clickUrl: () => `${serverUrl}/click`,
       }
   });
 });

@@ -4,10 +4,10 @@
 
 ```js
 # start server
-node src/index.js --server --port 8000 --url http://localhost:8000
+node src/index.js --server --port 8000 --serverUrl http://localhost:8000
 
 # start client
-node src/index.js --client --url ws://localhost:8000/ --sleepTime 00:00 --keyToPress a
+node src/index.js --client --websocketUrl ws://localhost:8000/ --sleepTime 00:00 --keyToPress a
 
 # send click from commandline
 curl -X POST http://localhost:8000/click

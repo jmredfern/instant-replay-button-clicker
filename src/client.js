@@ -118,7 +118,7 @@ const scheduleConnect = ({ sleepTime, url }) => {
   }
 }
 
-client.start = ({ keyToPress: _keyToPress, sleepTime, url }) => {
+client.start = ({ keyToPress: _keyToPress, sleepTime, websocketUrl: url }) => {
   log.info(`Starting client`);
   isConnected = false;
   keyToPress = _keyToPress;
