@@ -10,17 +10,20 @@ const { parse, differenceInMilliseconds, addMinutes, addDays, isWithinInterval, 
 
 let isConnected;
 let keyToPress;
+let sleepLengthMins;
+let sleepTime;
+let websocketUrl;
 
-const SLEEP_LENGTH_MINUTES = 6 * 60;
+const DEFAULT_SLEEP_LENGTH_MINUTES = 7 * 60;
 const KEEP_ALIVE_LENGTH_SECONDS = 50;
 const ERROR_RETRY_TIMEOUT = 5000;
 
 const client = {};
 
-const getSleepSchedule = ({ sleepTime }) => {
+const getSleepSchedule = ({ sleepLengthMins = DEFAULT_SLEEP_LENGTH_MINUTES, sleepTime }) => {
   const now = new Date();
   const sleepDate2 = parse(sleepTime, "HH:mm", new Date());
-  const wakeDate2 = addMinutes(sleepDate2, SLEEP_LENGTH_MINUTES);
+  const wakeDate2 = addMinutes(sleepDate2, sleepLengthMins);
   const sleepDate1 = subDays(sleepDate2, 1);
   const wakeDate1 = subDays(wakeDate2, 1);
   const sleepDate3 = addDays(sleepDate2, 1);
@@ -45,7 +48,7 @@ const sendKeepAlive = ({ websocket }) => {
   websocket.send("ping");
 };
 
-const processKeepAlive = ({ sleepTime, websocket }) => {
+const processKeepAlive = ({ websocket }) => {
   setTimeout(() => {
     if (!isConnected) {
       return;
@@ -55,12 +58,12 @@ const processKeepAlive = ({ sleepTime, websocket }) => {
       processKeepAlive({ websocket });
       return;
     }
-    const { shouldBeSleeping } = getSleepSchedule({ sleepTime });
+    const { shouldBeSleeping } = getSleepSchedule({ sleepLengthMins, sleepTime });
     if (shouldBeSleeping) {
       websocket.close();
     } else {
       sendKeepAlive({ websocket });
-      processKeepAlive({ sleepTime, websocket });
+      processKeepAlive({ websocket });
     }
   }, KEEP_ALIVE_LENGTH_SECONDS * 1000);
 }
@@ -69,15 +72,15 @@ const pressKey = ({ keyToPress }) => {
   exec(`osascript -e 'tell application "System Events"' -e 'keystroke "${keyToPress}"' -e 'end tell'`);
 }
 
-const connect = ({ sleepTime, url }) => {
-  log.info(`Connecting to ${url}`);
-  const websocket = new WebSocket(url);
+const connect = () => {
+  log.info(`Connecting to ${websocketUrl}`);
+  const websocket = new WebSocket(websocketUrl);
   let connectionErrored = false;
   websocket.on("open", () => {
     log.info("Client connected");
     isConnected = true;
     connectionErrored = false;
-    processKeepAlive({ sleepTime, websocket });
+    processKeepAlive({ websocket });
   });
 
   websocket.on("message", (data) => {
@@ -92,7 +95,7 @@ const connect = ({ sleepTime, url }) => {
     log.info("Client disconnected");
     isConnected = false;
     setTimeout(() => {
-      scheduleConnect({ sleepTime, url });
+      scheduleConnect({ sleepLengthMins, sleepTime, websocketUrl });
     }, connectionErrored ? ERROR_RETRY_TIMEOUT : 0);
   });
   websocket.on("error", () => {
@@ -101,28 +104,36 @@ const connect = ({ sleepTime, url }) => {
   });
 }
 
-const scheduleConnect = ({ sleepTime, url }) => {
+const scheduleConnect = () => {
   if (sleepTime === undefined) {
-    connect({ sleepTime, url });
+    connect();
     return;
   }
-  const { shouldBeSleeping, msUntilWake } =  getSleepSchedule({ sleepTime });
+  const { shouldBeSleeping, msUntilWake } = getSleepSchedule({ sleepLengthMins, sleepTime });
   if (shouldBeSleeping) {
     log.info(`Sleeping for another ${msUntilWake/1000} seconds`);
     setTimeout(() => {
       log.info('Waking up');
-      connect({ sleepTime, url });
+      connect();
     }, msUntilWake);
   } else {
-    connect({ sleepTime, url });
+    connect();
   }
 }
 
-client.start = ({ keyToPress: _keyToPress, sleepTime, websocketUrl: url }) => {
-  log.info(`Starting client`);
+client.start = ({
+    keyToPress: _keyToPress,
+    sleepLengthMins: _sleepLengthMins,
+    sleepTime: _sleepTime,
+    websocketUrl: _websocketUrl }) => {
   isConnected = false;
   keyToPress = _keyToPress;
-  scheduleConnect({ sleepTime, url })
+  sleepLengthMins = _sleepLengthMins;
+  sleepTime = _sleepTime;
+  websocketUrl = _websocketUrl;
+  log.info(`Starting client (keyToPress: ${keyToPress}, sleepLengthMins: ${sleepLengthMins}, ` +
+    `sleepTime: ${sleepTime}, websocketUrl: ${websocketUrl})`);
+  scheduleConnect()
 };
 
 export default client;

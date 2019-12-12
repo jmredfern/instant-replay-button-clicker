@@ -12,20 +12,21 @@ const optionDefinitions = [
   { name: "keyToPress", alias: "k", type: String },
   { name: "port", alias: "p", type: Number },
   { name: "server", alias: "s", type: Boolean },
+  { name: "sleepLengthMins", alias: "l", type: Number },
   { name: "sleepTime", alias: "t", type: String },
   { name: "websocketUrl", alias: "w", type: String },
   { name: "serverUrl", alias: "u", type: String },
 ];
 
 const options = commandLineArgs(optionDefinitions);
-const { keyToPress, port, serverUrl, sleepTime, websocketUrl } = options;
+const { keyToPress, port, serverUrl, sleepLengthMins, sleepTime, websocketUrl } = options;
 
 if (options.client) {
   if (!websocketUrl) {
     log.info("No websocket url specified");
     process.exit(0);
   }
-  client.start({ keyToPress, sleepTime, websocketUrl });
+  client.start({ keyToPress, sleepLengthMins, sleepTime, websocketUrl });
 } else if (options.server) {
   server.start({ port: process.env.PORT || port, serverUrl });
 }
