@@ -1,13 +1,18 @@
 "use strict";
 
 import WebSocket from "ws";
+import axios from 'axios';
 import dateFns from "date-fns";
 import logger from "./logger.js";
 import { exec } from "child_process";
 
 const log = logger.getLoggerByUrl({ url: import.meta.url });
-const { parse, differenceInMilliseconds, addMinutes, addDays, isWithinInterval, isBefore, subDays } = dateFns;
+const { parse, differenceInMilliseconds, differenceInSeconds, addMinutes, addDays, isWithinInterval, isBefore, subDays }
+  = dateFns;
 
+let antiIdleUrl;
+let antiIdleCallCount;
+let connectedDate;
 let isConnected;
 let keyToPress;
 let sleepLengthMins;
@@ -16,6 +21,7 @@ let websocketUrl;
 
 const DEFAULT_SLEEP_LENGTH_MINUTES = 7 * 60;
 const KEEP_ALIVE_LENGTH_SECONDS = 50;
+const ANTI_IDLE_LENGTH_SECONDS = 20 * 60;
 const ERROR_RETRY_TIMEOUT = 5000;
 
 const client = {};
@@ -48,14 +54,30 @@ const sendKeepAlive = ({ websocket }) => {
   websocket.send("ping");
 };
 
-const processKeepAlive = ({ websocket }) => {
+const processAntiIdle = async () => {
+  const now = new Date();
+  const secondsSinceConnect = differenceInSeconds(now, connectedDate);
+  const antiIdlePeriod = Math.floor(secondsSinceConnect / ANTI_IDLE_LENGTH_SECONDS);
+  if (antiIdlePeriod > antiIdleCallCount) {
+    antiIdleCallCount++;
+    try {
+      await axios.post(antiIdleUrl);
+      log.debug('Anti-idle call successful.');
+    } catch (error) {
+      log.error('Error while making anti-idle call.');
+    }
+  }
+};
+
+const processKeepAliveAndAntiIdle = ({ websocket }) => {
   setTimeout(() => {
     if (!isConnected) {
       return;
     }
     if (sleepTime === undefined) {
       sendKeepAlive({ websocket });
-      processKeepAlive({ websocket });
+      processAntiIdle();
+      processKeepAliveAndAntiIdle({ websocket });
       return;
     }
     const { shouldBeSleeping } = getSleepSchedule({ sleepLengthMins, sleepTime });
@@ -63,13 +85,14 @@ const processKeepAlive = ({ websocket }) => {
       websocket.close();
     } else {
       sendKeepAlive({ websocket });
-      processKeepAlive({ websocket });
+      processAntiIdle();
+      processKeepAliveAndAntiIdle({ websocket });
     }
   }, KEEP_ALIVE_LENGTH_SECONDS * 1000);
 }
 
 const pressKey = ({ keyToPress }) => {
-  exec(`osascript -e 'tell application "System Events"' -e 'keystroke "${keyToPress}"' -e 'end tell'`);
+    exec(`osascript -e 'tell application "System Events"' -e 'keystroke "${keyToPress}"' -e 'end tell'`);
 }
 
 const connect = () => {
@@ -79,8 +102,10 @@ const connect = () => {
   websocket.on("open", () => {
     log.info("Client connected");
     isConnected = true;
+    connectedDate = new Date();
+    antiIdleCallCount = 0;
     connectionErrored = false;
-    processKeepAlive({ websocket });
+    processKeepAliveAndAntiIdle({ websocket });
   });
 
   websocket.on("message", (data) => {
@@ -95,7 +120,7 @@ const connect = () => {
     log.info("Client disconnected");
     isConnected = false;
     setTimeout(() => {
-      scheduleConnect({ sleepLengthMins, sleepTime, websocketUrl });
+      scheduleConnect();
     }, connectionErrored ? ERROR_RETRY_TIMEOUT : 0);
   });
   websocket.on("error", () => {
@@ -122,17 +147,19 @@ const scheduleConnect = () => {
 }
 
 client.start = ({
+    antiIdleUrl: _antiIdleUrl,
     keyToPress: _keyToPress,
     sleepLengthMins: _sleepLengthMins,
     sleepTime: _sleepTime,
     websocketUrl: _websocketUrl }) => {
   isConnected = false;
+  antiIdleUrl = _antiIdleUrl;
   keyToPress = _keyToPress;
   sleepLengthMins = _sleepLengthMins;
   sleepTime = _sleepTime;
   websocketUrl = _websocketUrl;
-  log.info(`Starting client (keyToPress: ${keyToPress}, sleepLengthMins: ${sleepLengthMins}, ` +
-    `sleepTime: ${sleepTime}, websocketUrl: ${websocketUrl})`);
+  log.info(`Starting client (antiIdleUrl: ${antiIdleUrl}, keyToPress: ${keyToPress}, ` +
+    `sleepLengthMins: ${sleepLengthMins}, sleepTime: ${sleepTime}, websocketUrl: ${websocketUrl})`);
   scheduleConnect()
 };
 

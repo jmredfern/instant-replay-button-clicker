@@ -82,17 +82,22 @@ app.post("/click", (req, res) => {
   res.status(200).send();
 })
 
+app.post("/anti-idle", (req, res) => {
+  log.info("Anti-idle triggered");
+  res.status(200).send();
+})
+
 const rootPath = path.resolve(path.dirname(''));
 app.use('/assets/', express.static(path.join(rootPath, 'assets')))
 
 app.engine('handlebars', exphbs());
 app.set('view engine', 'handlebars');
-app.get('/', (req, res, next) => {
-  res.render('index', {
-      helpers: {
-          clickUrl: () => `${serverUrl}/click`,
-      }
-  });
-});
+// app.get('/', (req, res, next) => {
+//   res.render('index', {
+//       helpers: {
+//           clickUrl: () => `${serverUrl}/click`,
+//       }
+//   });
+// });
 
 export default server;
