@@ -8,10 +8,12 @@
     "axios": "^0.19.0",
     "command-line-args": "^5.1.1",
     "date-fns": "^2.8.1",
+    "esm": "^3.2.25",
     "express": "^4.17.1",
     "express-handlebars": "^3.1.0",
     "log4js": "^6.1.0",
-    "ws": "^7.2.0"
+    "ws": "^7.2.0",
+    "xstate": "^4.10.0"
   },
   "description": "",
   "devDependencies": {
@@ -72,6 +74,5 @@
     "start": "node src/index.js --server --serverUrl https://lit-refuge-18863.herokuapp.com",
     "test": "jest"
   },
-  "type": "module",
   "version": "0.0.0"
 }

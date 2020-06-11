@@ -1,42 +1,38 @@
-"use strict";
+'use strict';
 
-import { createServer } from "http";
-import express from "express";
-import logger from "./logger.js";
-import path from "path";
-import WebSocket from "ws";
-import exphbs from "express-handlebars";
-import dateFns from "date-fns";
+const { createServer } = require('http');
+const express = require('express');
+const logger = require('./logger.js');
+const path = require('path');
+const WebSocket = require('ws');
+const exphbs = require('express-handlebars');
+const { Machine, interpret } = require('xstate');
 
-const { differenceInMilliseconds } = dateFns;
-const log = logger.getLoggerByUrl({ url: import.meta.url });
+const log = logger.getLoggerByFilename({ filename: __filename });
 
 const app = express();
 
 const expressServer = createServer(app);
 const wss = new WebSocket.Server({ server: expressServer });
 
-const MINIMUM_CLICK_PERIOD_MS = 30000;
-
 let websocket;
 let clickPending = false;
 let isConnected = false;
 let serverUrl;
-let lastClickDate = null;
 
-wss.on("connection", (ws) => {
-  log.info("Client connected");
+wss.on('connection', (ws) => {
+  log.info('Client connected');
   isConnected = true;
   websocket = ws;
   if (clickPending) {
     processClick({ websocket });
   }
-  websocket.on("message", (data) => {
+  websocket.on('message', (data) => {
     log.debug(`Server received: ${data}`);
   });
 
-  websocket.on("close", () => {
-    log.info("Client disconnected");
+  websocket.on('close', () => {
+    log.info('Client disconnected');
     isConnected = false;
   });
 });
@@ -56,34 +52,20 @@ const processClick = ({ websocket }) => {
   if (!websocket || !isConnected) {
     return;
   }
-  log.info("Sending click");
+  log.info('Sending click');
   clickPending = false;
-  websocket.send("click");
+  websocket.send('click');
 }
 
-const isWithinLastClickPeriod = () => {
-  const clickDate = new Date();
-  const result =
-    lastClickDate !== null &&
-    differenceInMilliseconds(clickDate, lastClickDate) < MINIMUM_CLICK_PERIOD_MS;
-  if (result === false) {
-    lastClickDate = clickDate;
-  }
-  return result;
-};
-
-app.post("/click", (req, res) => {
-  log.info("Click received");
-  if (isWithinLastClickPeriod()) {
-    log.info('Ignoring click received within last click period');
-  } else {
-    processClick({ websocket });
-  }
+app.post('/click', (req, res) => {
+  log.info('Click received');
+  toggleService.send('TOGGLE');
+  // processClick({ websocket });
   res.status(200).send();
 })
 
-app.post("/anti-idle", (req, res) => {
-  log.info("Anti-idle triggered");
+app.post('/anti-idle', (req, res) => {
+  log.info('Anti-idle triggered');
   res.status(200).send();
 })
 
@@ -92,12 +74,28 @@ app.use('/assets/', express.static(path.join(rootPath, 'assets')))
 
 app.engine('handlebars', exphbs());
 app.set('view engine', 'handlebars');
-// app.get('/', (req, res, next) => {
-//   res.render('index', {
-//       helpers: {
-//           clickUrl: () => `${serverUrl}/click`,
-//       }
-//   });
-// });
+app.get('/', (req, res, next) => {
+  res.render('index', {
+      helpers: {
+          clickUrl: () => `${serverUrl}/click`,
+      }
+  });
+});
 
-export default server;
+// Stateless machine definition
+// machine.transition(...) is a pure function used by the interpreter.
+const toggleMachine = Machine({
+  id: 'toggle',
+  initial: 'inactive',
+  states: {
+    inactive: { on: { TOGGLE: 'active' } },
+    active: { on: { TOGGLE: 'inactive' } }
+  }
+});
+ 
+// Machine instance with internal state
+const toggleService = interpret(toggleMachine)
+  .onTransition(state => console.log(state.value))
+  .start();
+
+module.exports = server;
