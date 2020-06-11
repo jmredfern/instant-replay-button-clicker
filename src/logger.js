@@ -1,6 +1,6 @@
-"use strict";
+'use strict';
 
-import log4js from "log4js"
+const log4js = require('log4js');
 
 log4js.configure({
   appenders: { out: { type: 'stdout', layout: { type: 'basic' } } },
@@ -23,4 +23,4 @@ logger.getLoggerByFilename = ({ filename }) => {
   return log4js.getLogger(filename);
 };
 
-export default logger;
+module.exports = logger;

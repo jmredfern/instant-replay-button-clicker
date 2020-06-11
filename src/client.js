@@ -1,12 +1,12 @@
-"use strict";
+'use strict';
 
-import WebSocket from "ws";
-import axios from 'axios';
-import dateFns from "date-fns";
-import logger from "./logger.js";
-import { exec } from "child_process";
+const WebSocket = require('ws');
+const axios = require('axios');
+const dateFns = require('date-fns');
+const logger = require('./logger.js');
+const { exec } = require('child_process');
 
-const log = logger.getLoggerByUrl({ url: import.meta.url });
+const log = logger.getLoggerByFilename({ filename: __filename });
 const { parse, differenceInMilliseconds, differenceInSeconds, addMinutes, addDays, isWithinInterval, isBefore, subDays }
   = dateFns;
 
@@ -28,7 +28,7 @@ const client = {};
 
 const getSleepSchedule = ({ sleepLengthMins = DEFAULT_SLEEP_LENGTH_MINUTES, sleepTime }) => {
   const now = new Date();
-  const sleepDate2 = parse(sleepTime, "HH:mm", new Date());
+  const sleepDate2 = parse(sleepTime, 'HH:mm', new Date());
   const wakeDate2 = addMinutes(sleepDate2, sleepLengthMins);
   const sleepDate1 = subDays(sleepDate2, 1);
   const wakeDate1 = subDays(wakeDate2, 1);
@@ -51,7 +51,7 @@ const getSleepSchedule = ({ sleepLengthMins = DEFAULT_SLEEP_LENGTH_MINUTES, slee
 
 const sendKeepAlive = ({ websocket }) => {
   log.debug('Sending keep-alive');
-  websocket.send("ping");
+  websocket.send('ping');
 };
 
 const processAntiIdle = async () => {
@@ -92,15 +92,15 @@ const processKeepAliveAndAntiIdle = ({ websocket }) => {
 }
 
 const pressKey = ({ keyToPress }) => {
-    exec(`osascript -e 'tell application "System Events"' -e 'keystroke "${keyToPress}"' -e 'end tell'`);
+    exec(`osascript -e 'tell application 'System Events'' -e 'keystroke '${keyToPress}'' -e 'end tell'`);
 }
 
 const connect = () => {
   log.info(`Connecting to ${websocketUrl}`);
   const websocket = new WebSocket(websocketUrl);
   let connectionErrored = false;
-  websocket.on("open", () => {
-    log.info("Client connected");
+  websocket.on('open', () => {
+    log.info('Client connected');
     isConnected = true;
     connectedDate = new Date();
     antiIdleCallCount = 0;
@@ -108,22 +108,22 @@ const connect = () => {
     processKeepAliveAndAntiIdle({ websocket });
   });
 
-  websocket.on("message", (data) => {
+  websocket.on('message', (data) => {
     log.info(`Client received: ${data}`);
-    if (keyToPress !== undefined && data === "click") {
+    if (keyToPress !== undefined && data === 'click') {
       log.info(`Pressing key: ${keyToPress}`);
       pressKey({ keyToPress });
     }
   });
 
-  websocket.on("close", () => {
-    log.info("Client disconnected");
+  websocket.on('close', () => {
+    log.info('Client disconnected');
     isConnected = false;
     setTimeout(() => {
       scheduleConnect();
     }, connectionErrored ? ERROR_RETRY_TIMEOUT : 0);
   });
-  websocket.on("error", () => {
+  websocket.on('error', () => {
     connectionErrored = true;
     log.error(`Connection error, retrying in ${ERROR_RETRY_TIMEOUT / 1000} seconds`);
   });
@@ -163,4 +163,4 @@ client.start = ({
   scheduleConnect()
 };
 
-export default client;
+module.exports = client;
