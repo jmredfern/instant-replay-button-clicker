@@ -5,7 +5,7 @@
     "url": ""
   },
   "dependencies": {
-    "axios": "^0.19.0",
+    "axios": "^0.21.1",
     "command-line-args": "^5.1.1",
     "date-fns": "^2.8.1",
     "express": "^4.17.1",
